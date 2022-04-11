@@ -1,0 +1,89 @@
+---
+title: "Preventive Maintenance Sample"
+date: "`r Sys.Date()`"
+output:
+  openintro::lab_report
+  
+---
+
+
+## Establishing Connection to DataRobot
+
+```{r drconn, echo = T, message = F, warning = F}
+
+datarobot::ConnectToDataRobot(configPath = "drconfig.yaml")
+
+
+```
+
+## Sample Dataset (Predictive Maintenance Data)
+
+```{r pm, echo = T, message = F, warning = F}
+
+pm_data <- read.csv("https://raw.githubusercontent.com/Glucosquidic/plotly_test/main/ai4i2020.csv")[, c(3:9)]
+
+
+head(pm_data)
+
+
+```
+
+## Target Variable (Machine Failure) Class Counts (1 = Machine Failure)
+
+```{r pm.1, echo = T, message = F, warning = F}
+
+require(ggplot2)
+
+ggplot(pm_data) + geom_bar(aes(x = factor(Machine.failure), fill = factor(Machine.failure))) + labs(title = "Counts for Target Class")
+
+
+
+```
+
+## Starting the project
+
+```{r drProj, echo = T, message = F, warning = F}
+
+# project <- datarobot::SetupProject(dataSource = pm_data, projectName = "Preventive Maintenance")
+
+# datarobot::SetTarget(project, target = "Machine.failure")
+
+# datarobot::WaitForAutopilot(project)
+
+project <- datarobot::GetProject("6245d6803766a488c31131eb")
+
+models <- datarobot::ListModels(project)
+
+```
+
+
+## Listing the  Top Models
+
+```{r drModels, echo = T, message = F, warning = F}
+
+require(kableExtra)
+require(dplyr)
+
+all_models <- data.frame(models) %>% select(-c(expandedModel, blueprintId))
+
+kbl(all_models)
+
+
+```
+
+## Getting the feature impact for the top model
+
+```{r drFL, echo = T, message = F, warning = F}
+
+
+top_model_id <- all_models$modelId[1]
+
+top_model <- datarobot::GetModel(project, top_model_id)
+
+feature_impact <- datarobot::GetFeatureImpact(top_model)[, -4]
+
+# kbl(feature_impact)
+
+ggplot(feature_impact) + geom_col(aes(y = featureName, x = impactNormalized, fill = featureName)) + labs("Feature Impact")
+
+```
